@@ -152,6 +152,8 @@
             flex-direction: column;
             justify-content: space-between;
             min-height: 130px;
+            align-items: center; /* Center content horizontally */
+            text-align: center; /* Center text */
         }
         .subject-card:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0,0,0,0.08); }
         
@@ -407,7 +409,7 @@
         <!-- Manage List -->
         <div class="parent-card">
             <h3 style="margin-bottom:15px; color:var(--text-main); font-size: 1.1rem;">Current Tasks</h3>
-            <p style="font-size: 0.8rem; color: #718096; margin-bottom: 15px; font-style: italic;">Drag tasks to reorder them within a subject.</p>
+            <p style="font-size: 0.8rem; color: #718096; margin-bottom: 15px; font-style: italic;">Drag a task onto another to insert before it. Drop in the header box to move to bottom.</p>
             <div id="parent-task-list">
                 <!-- Populated -->
             </div>
@@ -480,13 +482,13 @@
     };
 
     const SUBJECTS = [
-        { id: 'math', label: 'Math', icon: 'fa-calculator', color: 'var(--math-color)' },
         { id: 'english', label: 'English', icon: 'fa-book-open', color: 'var(--english-color)' },
+        { id: 'math', label: 'Math', icon: 'fa-calculator', color: 'var(--math-color)' },
         { id: 'science', label: 'Science', icon: 'fa-flask', color: 'var(--science-color)' },
         { id: 'history', label: 'History', icon: 'fa-globe-americas', color: 'var(--history-color)' },
         { id: 'art', label: 'Art', icon: 'fa-palette', color: 'var(--art-color)' },
-        { id: 'pe', label: 'PE / Health', icon: 'fa-heart-pulse', color: 'var(--red-color)' },
-        { id: 'music', label: 'Music', icon: 'fa-music', color: 'var(--purple-color)' }
+        { id: 'music', label: 'Music', icon: 'fa-music', color: 'var(--purple-color)' },
+        { id: 'pe', label: 'PE / Health', icon: 'fa-heart-pulse', color: 'var(--red-color)' }
     ];
 
     const CATEGORIES = [
@@ -652,6 +654,23 @@
                             item.classList.add('dragging');
                         });
                         item.addEventListener('dragend', () => item.classList.remove('dragging'));
+                        
+                        // Drop on ITEM (Insert Before)
+                        item.addEventListener('dragover', (e) => {
+                            e.preventDefault();
+                            item.style.borderTop = "3px solid var(--english-color)";
+                        });
+                        item.addEventListener('dragleave', () => {
+                            item.style.borderTop = "";
+                        });
+                        item.addEventListener('drop', (e) => {
+                            e.preventDefault();
+                            e.stopPropagation(); 
+                            item.style.borderTop = "";
+                            const draggedId = e.dataTransfer.getData('text/plain');
+                            app.reorderTasks(draggedId, task.id);
+                        });
+
                         itemsContainer.appendChild(item);
                     });
                 } else {
@@ -661,6 +680,7 @@
                     itemsContainer.appendChild(emptyMsg);
                 }
                 
+                // Drop on CONTAINER (Move to Subject / Bottom)
                 groupContainer.addEventListener('dragover', (e) => {
                     e.preventDefault();
                     groupContainer.classList.add('drag-over');
@@ -670,7 +690,14 @@
                     e.preventDefault();
                     groupContainer.classList.remove('drag-over');
                     const draggedId = e.dataTransfer.getData('text/plain');
-                    app.moveTaskToSubject(draggedId, sub.id);
+                    
+                    // Check if we are just moving within the same subject (to the bottom)
+                    const task = state.data.tasks.find(t => String(t.id) === String(draggedId));
+                    if (task && task.subject === sub.id) {
+                        app.moveTaskToBottom(draggedId);
+                    } else {
+                        app.moveTaskToSubject(draggedId, sub.id);
+                    }
                 });
 
                 groupContainer.appendChild(itemsContainer);
@@ -688,7 +715,6 @@
                 hidden.push(subId); // Hide
             }
             
-            // Optimistic
             state.data.hiddenSubjects = hidden;
             app.render();
             
@@ -713,6 +739,61 @@
                     });
                 }
             }
+        },
+
+        moveTaskToBottom: async (taskId) => {
+            let tasks = [...state.data.tasks];
+            const taskIndex = tasks.findIndex(t => String(t.id) === String(taskId));
+            if (taskIndex === -1) return;
+            
+            const [task] = tasks.splice(taskIndex, 1);
+            
+            // Find the last index of a task with this subject
+            let insertIndex = -1;
+            for(let i = tasks.length - 1; i >= 0; i--) {
+                if (tasks[i].subject === task.subject) {
+                    insertIndex = i;
+                    break;
+                }
+            }
+            
+            if (insertIndex !== -1) {
+                tasks.splice(insertIndex + 1, 0, task);
+            } else {
+                // Should not happen if moving within same subject unless it was the only one
+                tasks.push(task); 
+            }
+            
+            state.data.tasks = tasks;
+            app.render();
+            await db.collection('artifacts').doc(state.appId).collection('public').doc('data').collection('daily_logs').doc(state.dateStr).update({
+                tasks: tasks
+            });
+        },
+
+        reorderTasks: async (draggedId, targetId) => {
+            if (String(draggedId) === String(targetId)) return;
+            
+            const tasks = [...state.data.tasks];
+            const draggedTask = tasks.find(t => String(t.id) === String(draggedId));
+            
+            // Remove dragged task
+            const remainingTasks = tasks.filter(t => String(t.id) !== String(draggedId));
+            
+            // Find index of target in remaining tasks
+            const targetIndex = remainingTasks.findIndex(t => String(t.id) === String(targetId));
+            
+            if (targetIndex === -1 || !draggedTask) return;
+            
+            // Insert dragged task before target
+            remainingTasks.splice(targetIndex, 0, draggedTask);
+            
+            state.data.tasks = remainingTasks;
+            app.render();
+            
+            await db.collection('artifacts').doc(state.appId).collection('public').doc('data').collection('daily_logs').doc(state.dateStr).update({
+                tasks: remainingTasks
+            });
         },
 
         renderTasks: (subId) => {
