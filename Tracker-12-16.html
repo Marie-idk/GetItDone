@@ -13,9 +13,14 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
 
+    <!-- Firebase SDKs (Compat - Stable for Wix) -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+
     <style>
         :root {
-            /* Palette Variables */
+            /* ORIGINAL Palette Variables */
             --bg-color: transparent;
             --card-bg: rgba(255, 255, 255, 0.98);
             
@@ -39,7 +44,7 @@
             background-color: var(--bg-color);
             color: var(--text-main);
             margin: 0;
-            padding: 10px; /* Reduced padding */
+            padding: 10px;
             display: flex;
             justify-content: center;
             min-height: 100vh;
@@ -48,10 +53,10 @@
         /* --- Main Layout --- */
         #app-container {
             width: 100%;
-            max-width: 850px; /* Made smaller/more compact */
+            max-width: 850px;
             background-color: var(--card-bg);
             border-radius: var(--radius);
-            padding: 25px; /* Reduced padding */
+            padding: 25px;
             box-shadow: 
                 0 0 25px rgba(255, 46, 99, 0.15), 
                 0 0 50px rgba(0, 194, 255, 0.1),
@@ -68,7 +73,7 @@
         h1, h2, h3, h4 { font-family: 'Fredoka', sans-serif; margin: 0; }
         
         .title-gradient {
-            font-size: 2rem; /* Slightly smaller */
+            font-size: 2rem;
             background: linear-gradient(45deg, var(--math-color), var(--art-color), var(--english-color));
             -webkit-background-clip: text;
             background-clip: text;
@@ -92,7 +97,7 @@
         .header-actions { display: flex; gap: 10px; }
 
         .btn-icon {
-            width: 40px; height: 40px; /* Smaller buttons */
+            width: 40px; height: 40px;
             border-radius: 50%;
             border: 2px solid #edf2f7;
             background: white;
@@ -103,17 +108,17 @@
         }
         .btn-icon:hover { transform: scale(1.1); border-color: var(--english-color); color: var(--english-color); }
 
-        /* --- Progress Section (Compact) --- */
+        /* --- Progress Section --- */
         .progress-card {
             background: white; 
-            padding: 15px 20px; /* Reduced padding */
+            padding: 15px 20px;
             border-radius: 15px; 
             border: 2px solid #edf2f7;
         }
 
         .progress-bar-container {
             width: 100%;
-            height: 12px; /* Thinner bar */
+            height: 12px;
             background: #edf2f7;
             border-radius: 10px;
             overflow: hidden;
@@ -130,7 +135,7 @@
         /* --- Subject Grid --- */
         .subject-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); /* Smaller cards */
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
             gap: 15px;
         }
 
@@ -146,7 +151,7 @@
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-            min-height: 130px; /* Shorter cards */
+            min-height: 130px;
         }
         .subject-card:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0,0,0,0.08); }
         
@@ -187,6 +192,7 @@
         }
         .task-item:hover { border-color: var(--english-color); transform: scale(1.005); }
         .task-item.completed { background: #f0fff4; border-color: #b9f6ca; opacity: 0.8; }
+        .task-item.dragging { opacity: 0.5; border: 2px dashed var(--text-light); }
 
         .task-check {
             width: 32px; height: 32px;
@@ -207,7 +213,45 @@
             color: var(--text-light);
         }
 
-        /* --- Focus Modal --- */
+        /* --- Parent View & Dragging --- */
+        #parent-view { display: none; flex-direction: column; gap: 15px; }
+        .parent-header {
+            background: var(--text-main); color: white; padding: 15px;
+            border-radius: 15px; display: flex; justify-content: space-between; align-items: center;
+        }
+        .parent-card { background: white; padding: 20px; border-radius: 20px; border: 2px solid #edf2f7; }
+        
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        input, select, textarea {
+            width: 100%; padding: 12px; border-radius: 10px; border: 2px solid #edf2f7;
+            font-family: 'Nunito', sans-serif; font-size: 0.95rem; background: #fcfcfc;
+            outline: none;
+        }
+        input:focus, select:focus, textarea:focus { border-color: var(--english-color); }
+
+        .subject-group-container {
+            border: 2px solid transparent;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            transition: all 0.2s;
+        }
+        .subject-group-container.drag-over {
+            border-color: var(--english-color);
+            background: #f0f9ff;
+        }
+        .subject-group-header {
+            font-weight: 800; color: var(--text-main); font-size: 1rem;
+            margin: 10px 0 5px 0; border-bottom: 2px solid #edf2f7; padding-bottom: 5px;
+            display: flex; align-items: center; gap: 10px;
+        }
+        .empty-zone {
+            padding: 10px; font-size: 0.8rem; color: #cbd5e0; font-style: italic; text-align: center;
+        }
+
+        .btn-vis { transition: all 0.2s; }
+        .btn-vis:hover { transform: scale(1.05); }
+
+        /* Modals */
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.95); z-index: 1000; align-items: center; justify-content: center; backdrop-filter: blur(5px); }
         .modal.active { display: flex; animation: zoomIn 0.2s ease; }
         
@@ -240,45 +284,22 @@
             box-shadow: 0 5px 15px rgba(0,0,0,0.1);
         }
         .btn-success { background: linear-gradient(135deg, var(--science-color), var(--english-color)); color: white; }
-        .btn-help { background: white; border: 3px solid var(--art-color); color: var(--art-color); }
-        
         .btn-back { 
             background: #edf2f7; color: var(--text-light); border: none; 
             padding: 8px 16px; border-radius: 10px; font-weight: 700; cursor: pointer;
             margin-bottom: 15px; display: inline-flex; align-items: center; gap: 8px; font-size: 0.9rem;
         }
 
-        /* --- Parent View --- */
-        #parent-view { display: none; flex-direction: column; gap: 15px; }
-        .parent-header {
-            background: var(--text-main); color: white; padding: 15px;
-            border-radius: 15px; display: flex; justify-content: space-between; align-items: center;
-        }
-        .parent-card { background: white; padding: 20px; border-radius: 20px; border: 2px solid #edf2f7; }
-        
-        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        input, select, textarea {
-            width: 100%; padding: 12px; border-radius: 10px; border: 2px solid #edf2f7;
-            font-family: 'Nunito', sans-serif; font-size: 0.95rem; background: #fcfcfc;
-            outline: none;
-        }
-        input:focus, select:focus, textarea:focus { border-color: var(--english-color); }
-
-        /* Animations */
+        /* Animations & Helpers */
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes zoomIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
         .confetti { position: fixed; width: 10px; height: 10px; animation: fall linear forwards; z-index: 2000; }
         @keyframes fall { to { transform: translateY(100vh) rotate(720deg); } }
-        
-        /* Spinner */
         #loading-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(255,255,255,0.9); z-index: 500; display: flex; justify-content: center; align-items: center; border-radius: var(--radius); }
         .spinner { border: 4px solid #edf2f7; border-top: 4px solid var(--math-color); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         .hidden { display: none !important; }
-
-        .date-control {
-            display: flex; gap: 5px; align-items: center; background: #f7fafc; padding: 5px; border-radius: 10px;
-        }
+        .date-control { display: flex; gap: 5px; align-items: center; background: #f7fafc; padding: 5px; border-radius: 10px; }
     </style>
 </head>
 <body>
@@ -356,6 +377,15 @@
             </div>
         </div>
 
+        <!-- Visibility Toggle -->
+        <div class="parent-card">
+            <h3 style="margin-bottom:15px; color:var(--text-main); font-size: 1.1rem;">Active Subjects</h3>
+            <p style="font-size: 0.8rem; color: #718096; margin-bottom: 10px;">Tap to show or hide subjects for today.</p>
+            <div id="subject-visibility-list" style="display:flex; flex-wrap:wrap; gap:10px;">
+                <!-- Injected via JS -->
+            </div>
+        </div>
+
         <!-- Add Task -->
         <div class="parent-card">
             <h3 style="margin-bottom:15px; color:var(--english-color); font-size: 1.1rem;">Add New Task</h3>
@@ -377,7 +407,8 @@
         <!-- Manage List -->
         <div class="parent-card">
             <h3 style="margin-bottom:15px; color:var(--text-main); font-size: 1.1rem;">Current Tasks</h3>
-            <div id="parent-task-list" class="task-list">
+            <p style="font-size: 0.8rem; color: #718096; margin-bottom: 15px; font-style: italic;">Drag tasks to reorder them within a subject.</p>
+            <div id="parent-task-list">
                 <!-- Populated -->
             </div>
         </div>
@@ -417,12 +448,7 @@
     </div>
 </div>
 
-<script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getFirestore, doc, setDoc, onSnapshot, updateDoc, deleteField } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-    import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-
-    // --- CONFIGURATION ---
+<script>
     const firebaseConfig = {
         apiKey: "AIzaSyAetTXNbMWQtI_RBa8UfQmOsyBe_IRNp_k",
         authDomain: "point-tracker-b314f.firebaseapp.com",
@@ -432,15 +458,22 @@
         appId: "1:169392724174:web:3ba4d6fe5292496d9d989f"
     };
 
-    const firebaseApp = initializeApp(firebaseConfig);
-    const db = getFirestore(firebaseApp);
-    const auth = getAuth(firebaseApp);
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    const auth = firebase.auth();
     
-    // Application State
+    // --- HELPER FOR DEFAULTS ---
+    function getDefaults() {
+         return [
+            { id: Date.now().toString(), subject: 'pe', category: 'Check-In', title: 'Daily Check-In', description: 'Start your day!', completed: false },
+            { id: (Date.now() + 1).toString(), subject: 'pe', category: 'Check Out', title: 'Daily Check-Out', description: 'End of day review', completed: false }
+        ];
+    }
+
     const state = {
         user: null,
-        data: {}, // Firestore Data
-        dateStr: new Date().toLocaleDateString('en-CA'), // YYYY-MM-DD (Local)
+        data: {},
+        dateStr: new Date().toLocaleDateString('en-CA'),
         currentSubject: null,
         currentTask: null,
         appId: 'gabriel-space-enhanced'
@@ -466,53 +499,44 @@
         "Project": 25, "Math Problems": 15, "Essay": 20, "Check-In": 5, "Check Out": 5
     };
 
-    // --- MAIN LOGIC ---
     window.app = {
         init: async () => {
-            // Setup Date Display
             app.renderDateDisplay();
 
-            // Populate Dropdowns
             const subSelect = document.getElementById('new-task-subject');
-            SUBJECTS.forEach(s => subSelect.innerHTML += `<option value="${s.id}">${s.label}</option>`);
-            const catSelect = document.getElementById('new-task-category');
-            CATEGORIES.forEach(c => catSelect.innerHTML += `<option value="${c}">${c}</option>`);
+            if(subSelect) {
+                SUBJECTS.forEach(s => subSelect.innerHTML += `<option value="${s.id}">${s.label}</option>`);
+                const catSelect = document.getElementById('new-task-category');
+                CATEGORIES.forEach(c => catSelect.innerHTML += `<option value="${c}">${c}</option>`);
+            }
 
-            // Auth & Data Listener
-            try { await signInAnonymously(auth); } catch (e) { console.error(e); }
+            try { await auth.signInAnonymously(); } catch (e) { console.error(e); }
             
-            onAuthStateChanged(auth, (u) => {
+            auth.onAuthStateChanged((u) => {
                 state.user = u;
                 if (u) app.subscribeData();
             });
         },
 
         subscribeData: () => {
-            const docRef = doc(db, 'artifacts', state.appId, 'public', 'data', 'daily_logs', state.dateStr);
-            onSnapshot(docRef, (snap) => {
-                document.getElementById('loading-overlay').classList.add('hidden');
-                if (snap.exists()) {
+            const docRef = db.collection('artifacts').doc(state.appId).collection('public').doc('data').collection('daily_logs').doc(state.dateStr);
+            docRef.onSnapshot((snap) => {
+                const loader = document.getElementById('loading-overlay');
+                if(loader) loader.classList.add('hidden');
+                
+                if (snap.exists) {
                     const rawData = snap.data();
-                    
-                    // --- DATA RECOVERY FIX START ---
-                    // This block detects if "tasks" is an Object (old React version) and converts it to Array (this version)
                     let safeTasks = rawData.tasks || [];
                     if (!Array.isArray(safeTasks)) {
-                        console.warn("Recovering data format...");
-                        try {
-                            // Convert {math: [t1], sci: [t2]} -> [t1, t2]
-                            safeTasks = Object.values(safeTasks).flat();
-                        } catch (e) {
-                            safeTasks = [];
-                        }
+                         try { safeTasks = Object.values(safeTasks).flat(); } catch (e) { safeTasks = []; }
                     }
-                    // --- DATA RECOVERY FIX END ---
-                    
+                    if (safeTasks.length === 0) {
+                        safeTasks = getDefaults();
+                    }
                     state.data = { ...rawData, tasks: safeTasks };
                 } else {
-                    // Init Day
-                    const initial = { points: 0, dailyGoal: 50, tasks: [] };
-                    setDoc(docRef, initial);
+                    const initial = { points: 0, dailyGoal: 50, tasks: getDefaults(), hiddenSubjects: [] };
+                    docRef.set(initial);
                     state.data = initial;
                 }
                 app.render();
@@ -522,8 +546,8 @@
         render: () => {
             const data = state.data;
             const tasks = data.tasks || [];
+            const hidden = data.hiddenSubjects || [];
             
-            // 1. Progress
             const points = data.points || 0;
             const goal = data.dailyGoal || 50;
             document.getElementById('points-display').innerText = points;
@@ -531,21 +555,18 @@
             document.getElementById('daily-goal-input').value = goal;
             document.getElementById('progress-fill').style.width = `${Math.min(100, (points / goal) * 100)}%`;
 
-            // 2. Subject Grid (Student View)
+            // Student Grid (Filter Hidden)
             const grid = document.getElementById('subject-view');
             grid.innerHTML = '';
             
-            // Only show subjects that have tasks or if we are in student view showing empty slots
-            // Actually, showing all subjects is better for consistency
             SUBJECTS.forEach(sub => {
+                // SKIP IF HIDDEN
+                if (hidden.includes(sub.id)) return;
+
                 const subTasks = tasks.filter(t => t.subject === sub.id);
                 const completedCount = subTasks.filter(t => t.completed).length;
                 const isDone = subTasks.length > 0 && completedCount === subTasks.length;
                 
-                // Hide subject if no tasks (User preference usually, but let's show to indicate available subjects)
-                // If you want to hide empty subjects, uncomment next line:
-                // if (subTasks.length === 0) return; 
-
                 const card = document.createElement('div');
                 card.className = 'subject-card';
                 if(isDone) card.style.background = '#f0fff4';
@@ -564,25 +585,134 @@
                 grid.appendChild(card);
             });
 
-            // 3. Parent Task List
+            // Parent - Active Subjects Controls
+            const visList = document.getElementById('subject-visibility-list');
+            if (visList) {
+                visList.innerHTML = '';
+                SUBJECTS.forEach(sub => {
+                    const isHidden = hidden.includes(sub.id);
+                    const btn = document.createElement('button');
+                    btn.className = isHidden ? 'btn-vis' : 'btn-vis';
+                    btn.style.cssText = `
+                        border: 2px solid ${sub.color};
+                        background: ${isHidden ? '#f7fafc' : sub.color};
+                        color: ${isHidden ? '#a0aec0' : 'white'};
+                        padding: 8px 12px;
+                        border-radius: 12px;
+                        cursor: pointer;
+                        font-weight: 700;
+                        font-size: 0.8rem;
+                        display: flex; align-items: center; gap: 5px;
+                        border-style: ${isHidden ? 'dashed' : 'solid'};
+                    `;
+                    btn.innerHTML = `<i class="fas ${sub.icon}"></i> ${sub.label}`;
+                    btn.onclick = () => app.toggleSubjectVisibility(sub.id);
+                    visList.appendChild(btn);
+                });
+            }
+
+            // Parent Task List (Grouped)
             const parentList = document.getElementById('parent-task-list');
             parentList.innerHTML = '';
-            tasks.forEach(task => {
-                const item = document.createElement('div');
-                item.className = 'task-item';
-                item.style.padding = '10px';
-                item.innerHTML = `
-                    <div>
-                        <div style="font-weight:bold; font-size:0.9rem;">${task.title}</div>
-                        <div style="font-size:0.8rem; color:var(--text-light);">${task.category} (${POINTS[task.category] || 10}pts)</div>
-                    </div>
-                    <button onclick="app.deleteTask('${task.id}')" style="color:var(--red-color); background:none; border:none; cursor:pointer;"><i class="fas fa-trash"></i></button>
-                `;
-                parentList.appendChild(item);
-            });
+            
+            SUBJECTS.forEach(sub => {
+                const subTasks = tasks.filter(t => t.subject === sub.id);
+                
+                const groupContainer = document.createElement('div');
+                groupContainer.className = 'subject-group-container';
+                
+                const groupHeader = document.createElement('div');
+                groupHeader.className = 'subject-group-header';
+                groupHeader.style.color = sub.color;
+                groupHeader.innerHTML = `<i class="fas ${sub.icon}"></i> ${sub.label}`;
+                groupContainer.appendChild(groupHeader);
+                
+                const itemsContainer = document.createElement('div');
+                
+                if (subTasks.length > 0) {
+                    subTasks.forEach(task => {
+                        const item = document.createElement('div');
+                        item.className = 'task-item';
+                        item.draggable = true;
+                        item.style.padding = '10px';
+                        item.style.marginBottom = '8px';
+                        item.dataset.id = task.id;
+                        
+                        item.innerHTML = `
+                            <div style="flex:1;">
+                                <div style="font-weight:bold; font-size:0.9rem;">${task.title}</div>
+                                <div style="font-size:0.8rem; color:var(--text-light);">${task.category}</div>
+                            </div>
+                            <div style="color:var(--text-light); font-size:0.8rem; margin-right:10px;"><i class="fas fa-grip-lines"></i></div>
+                            <button onclick="app.deleteTask('${task.id}')" style="color:var(--red-color); background:none; border:none; cursor:pointer;"><i class="fas fa-trash"></i></button>
+                        `;
 
-            // 4. Update Task View if open
+                        item.addEventListener('dragstart', (e) => {
+                            e.dataTransfer.setData('text/plain', task.id);
+                            item.classList.add('dragging');
+                        });
+                        item.addEventListener('dragend', () => item.classList.remove('dragging'));
+                        itemsContainer.appendChild(item);
+                    });
+                } else {
+                    const emptyMsg = document.createElement('div');
+                    emptyMsg.className = 'empty-zone';
+                    emptyMsg.innerText = "No tasks assigned";
+                    itemsContainer.appendChild(emptyMsg);
+                }
+                
+                groupContainer.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    groupContainer.classList.add('drag-over');
+                });
+                groupContainer.addEventListener('dragleave', () => groupContainer.classList.remove('drag-over'));
+                groupContainer.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    groupContainer.classList.remove('drag-over');
+                    const draggedId = e.dataTransfer.getData('text/plain');
+                    app.moveTaskToSubject(draggedId, sub.id);
+                });
+
+                groupContainer.appendChild(itemsContainer);
+                parentList.appendChild(groupContainer);
+            });
+            
             if (state.currentSubject) app.renderTasks(state.currentSubject);
+        },
+
+        toggleSubjectVisibility: async (subId) => {
+            let hidden = state.data.hiddenSubjects || [];
+            if (hidden.includes(subId)) {
+                hidden = hidden.filter(id => id !== subId); // Show
+            } else {
+                hidden.push(subId); // Hide
+            }
+            
+            // Optimistic
+            state.data.hiddenSubjects = hidden;
+            app.render();
+            
+            await db.collection('artifacts').doc(state.appId).collection('public').doc('data').collection('daily_logs').doc(state.dateStr).update({
+                hiddenSubjects: hidden
+            });
+        },
+
+        moveTaskToSubject: async (taskId, newSubId) => {
+            let currentTasks = [...state.data.tasks];
+            const idx = currentTasks.findIndex(t => String(t.id) === String(taskId));
+            if (idx < 0) return;
+            const task = currentTasks[idx];
+            
+            if (task.subject !== newSubId) {
+                if(confirm(`Move "${task.title}" to ${SUBJECTS.find(s=>s.id===newSubId).label}?`)) {
+                    task.subject = newSubId;
+                    state.data.tasks = currentTasks;
+                    app.render();
+                    await db.collection('artifacts').doc(state.appId).collection('public').doc('data').collection('daily_logs').doc(state.dateStr).update({
+                        tasks: currentTasks
+                    });
+                }
+            }
         },
 
         renderTasks: (subId) => {
@@ -620,18 +750,14 @@
             });
         },
 
-        // --- NAVIGATION ---
         openSubject: (subId) => {
             state.currentSubject = subId;
             const sub = SUBJECTS.find(s => s.id === subId);
-            
             document.getElementById('subject-view').style.display = 'none';
             document.getElementById('task-view').style.display = 'block';
-            
             document.getElementById('task-view-title').innerText = sub.label;
             document.getElementById('task-view-icon').style.backgroundColor = sub.color;
             document.getElementById('task-view-icon').innerHTML = `<i class="fas ${sub.icon}"></i>`;
-            
             app.renderTasks(subId);
         },
 
@@ -648,8 +774,7 @@
         },
 
         verifyPin: () => {
-            const val = document.getElementById('pin-input').value;
-            if (val === "1234") {
+            if (document.getElementById('pin-input').value === "1234") {
                 app.closeModal('pin-modal');
                 app.enterParentMode();
             } else {
@@ -668,35 +793,32 @@
             document.getElementById('student-view-container').style.display = 'block';
         },
 
-        // --- DATE & PLANNING ---
         renderDateDisplay: () => {
-            const d = new Date(state.dateStr + 'T00:00:00'); // Force local time interpretation
+            const d = new Date(state.dateStr + 'T00:00:00');
             document.getElementById('display-date').innerText = d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
         },
 
         changeDate: (newDateStr) => {
             if(!newDateStr) return;
             state.dateStr = newDateStr;
-            document.getElementById('loading-overlay').classList.remove('hidden');
+            const loader = document.getElementById('loading-overlay');
+            if(loader) loader.classList.remove('hidden');
             app.renderDateDisplay();
-            app.subscribeData(); // Re-subscribe to new date doc
+            app.subscribeData();
         },
 
         planTomorrow: () => {
             const today = new Date();
             const tomorrow = new Date(today);
             tomorrow.setDate(today.getDate() + 1);
-            // Format YYYY-MM-DD manually to avoid timezone issues
             const yyyy = tomorrow.getFullYear();
             const mm = String(tomorrow.getMonth() + 1).padStart(2, '0');
             const dd = String(tomorrow.getDate()).padStart(2, '0');
             const str = `${yyyy}-${mm}-${dd}`;
-            
             app.changeDate(str);
             document.getElementById('parent-date-picker').value = str;
         },
 
-        // --- TASK LOGIC ---
         addTask: async () => {
             const sub = document.getElementById('new-task-subject').value;
             const cat = document.getElementById('new-task-category').value;
@@ -714,11 +836,10 @@
                 completed: false
             };
             
-            // Ensure array
             let currentTasks = state.data.tasks || [];
             if (!Array.isArray(currentTasks)) currentTasks = [];
 
-            await updateDoc(doc(db, 'artifacts', state.appId, 'public', 'data', 'daily_logs', state.dateStr), {
+            await db.collection('artifacts').doc(state.appId).collection('public').doc('data').collection('daily_logs').doc(state.dateStr).update({
                 tasks: [...currentTasks, newTask]
             });
 
@@ -728,21 +849,15 @@
 
         deleteTask: async (id) => {
             if(!confirm("Remove task?")) return;
-            // Ensure array
             let currentTasks = state.data.tasks || [];
-            if (!Array.isArray(currentTasks)) {
-                 if (typeof currentTasks === 'object') currentTasks = Object.values(currentTasks).flat();
-                 else currentTasks = [];
-            }
-            
-            const newTasks = currentTasks.filter(t => t.id !== id);
-            await updateDoc(doc(db, 'artifacts', state.appId, 'public', 'data', 'daily_logs', state.dateStr), {
+            const newTasks = currentTasks.filter(t => String(t.id) !== String(id));
+            await db.collection('artifacts').doc(state.appId).collection('public').doc('data').collection('daily_logs').doc(state.dateStr).update({
                 tasks: newTasks
             });
         },
 
         updateGoal: async (val) => {
-            await updateDoc(doc(db, 'artifacts', state.appId, 'public', 'data', 'daily_logs', state.dateStr), {
+            await db.collection('artifacts').doc(state.appId).collection('public').doc('data').collection('daily_logs').doc(state.dateStr).update({
                 dailyGoal: parseInt(val)
             });
         },
@@ -750,13 +865,11 @@
         openFocus: (task) => {
             state.currentTask = task;
             const sub = SUBJECTS.find(s => s.id === task.subject);
-            
             document.getElementById('focus-icon').style.backgroundColor = sub.color;
             document.getElementById('focus-icon').innerHTML = `<i class="fas ${sub.icon}"></i>`;
             document.getElementById('focus-category').innerText = task.category;
             document.getElementById('focus-title').innerText = task.title;
             document.getElementById('focus-desc').innerText = task.description || "You can do this!";
-            
             document.getElementById('focus-modal').classList.add('active');
         },
 
@@ -764,14 +877,13 @@
             if (!state.currentTask) return;
             const task = state.currentTask;
             const pts = POINTS[task.category] || 10;
-            
             const newPoints = (state.data.points || 0) + pts;
             const newTasks = state.data.tasks.map(t => {
                 if (t.id === task.id) return { ...t, completed: true };
                 return t;
             });
 
-            await updateDoc(doc(db, 'artifacts', state.appId, 'public', 'data', 'daily_logs', state.dateStr), {
+            await db.collection('artifacts').doc(state.appId).collection('public').doc('data').collection('daily_logs').doc(state.dateStr).update({
                 points: newPoints,
                 tasks: newTasks
             });
@@ -781,17 +893,25 @@
         },
 
         resetDay: async () => {
-            if(confirm("Reset points and task status?")) {
-                let currentTasks = state.data.tasks || [];
-                if (!Array.isArray(currentTasks)) {
-                     if (typeof currentTasks === 'object') currentTasks = Object.values(currentTasks).flat();
-                     else currentTasks = [];
+            if(confirm("Reset points and restore daily defaults?")) {
+                const loader = document.getElementById('loading-overlay');
+                if(loader) loader.classList.remove('hidden');
+                try {
+                     // Get current hidden subjects to preserve them
+                     const currentHidden = state.data.hiddenSubjects || [];
+                     
+                     // Using SET to force overwrite/create if missing
+                     await db.collection('artifacts').doc(state.appId).collection('public').doc('data').collection('daily_logs').doc(state.dateStr).set({
+                        points: 0,
+                        dailyGoal: state.data.dailyGoal || 50,
+                        tasks: getDefaults(),
+                        hiddenSubjects: currentHidden 
+                    });
+                } catch (e) {
+                    console.error(e);
+                    alert("Error resetting: " + e.message);
+                    if(loader) loader.classList.add('hidden');
                 }
-
-                await updateDoc(doc(db, 'artifacts', state.appId, 'public', 'data', 'daily_logs', state.dateStr), {
-                    points: 0,
-                    tasks: currentTasks.map(t => ({...t, completed: false}))
-                });
             }
         },
 
@@ -799,7 +919,6 @@
             document.getElementById(id).classList.remove('active');
         },
 
-        // --- EXTRAS ---
         triggerConfetti: () => {
             const colors = ['#FF2E63', '#00F5D4', '#FF9F1C', '#00C2FF'];
             for (let i = 0; i < 50; i++) {
@@ -820,19 +939,13 @@
             doc.setFont("helvetica", "bold");
             doc.setFontSize(22);
             doc.text("Gabe's Get It Done Log", 20, 20);
-            
             doc.setFontSize(12);
             doc.setFont("helvetica", "normal");
             doc.text(`Date: ${state.dateStr}`, 20, 30);
             doc.text(`Score: ${state.data.points || 0} / ${state.data.dailyGoal || 50}`, 20, 36);
-            
             const rows = (state.data.tasks || []).map(t => [
-                SUBJECTS.find(s=>s.id===t.subject)?.label,
-                t.category,
-                t.title, 
-                t.completed ? "DONE" : "Pending"
+                SUBJECTS.find(s=>s.id===t.subject)?.label, t.category, t.title, t.completed ? "DONE" : "Pending"
             ]);
-            
             doc.autoTable({
                 startY: 45,
                 head: [['Subject', 'Type', 'Task', 'Status']],
@@ -844,7 +957,6 @@
         }
     };
 
-    // Start
     window.app.init();
 </script>
 
