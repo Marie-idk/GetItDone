@@ -1,0 +1,852 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gabe's Get It Done Log</title>
+    
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600&family=Nunito:wght@400;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- PDF Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+
+    <style>
+        :root {
+            /* Palette Variables */
+            --bg-color: transparent;
+            --card-bg: rgba(255, 255, 255, 0.98);
+            
+            --math-color: #FF2E63;
+            --science-color: #00F5D4;
+            --english-color: #00C2FF;
+            --history-color: #D0FF00;
+            --art-color: #FF9F1C;
+            --purple-color: #9D4EDD;
+            --red-color: #FF0055;
+            
+            --text-main: #2d3748;
+            --text-light: #718096;
+            --radius: 20px;
+        }
+
+        * { box-sizing: border-box; transition: all 0.2s ease; }
+
+        body {
+            font-family: 'Nunito', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 10px; /* Reduced padding */
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        /* --- Main Layout --- */
+        #app-container {
+            width: 100%;
+            max-width: 850px; /* Made smaller/more compact */
+            background-color: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 25px; /* Reduced padding */
+            box-shadow: 
+                0 0 25px rgba(255, 46, 99, 0.15), 
+                0 0 50px rgba(0, 194, 255, 0.1),
+                0 10px 30px rgba(0,0,0,0.05);
+            border: 3px solid rgba(255,255,255,0.8);
+            backdrop-filter: blur(10px);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* --- Typography --- */
+        h1, h2, h3, h4 { font-family: 'Fredoka', sans-serif; margin: 0; }
+        
+        .title-gradient {
+            font-size: 2rem; /* Slightly smaller */
+            background: linear-gradient(45deg, var(--math-color), var(--art-color), var(--english-color));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            display: inline-block;
+            letter-spacing: -1px;
+            line-height: 1.1;
+        }
+
+        .subtitle { font-size: 0.9rem; color: var(--text-light); font-weight: 700; margin-top: 2px; }
+
+        /* --- Header & Controls --- */
+        header { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            padding-bottom: 15px; 
+            border-bottom: 2px solid #edf2f7; 
+        }
+
+        .header-actions { display: flex; gap: 10px; }
+
+        .btn-icon {
+            width: 40px; height: 40px; /* Smaller buttons */
+            border-radius: 50%;
+            border: 2px solid #edf2f7;
+            background: white;
+            font-size: 1rem;
+            color: var(--text-light);
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .btn-icon:hover { transform: scale(1.1); border-color: var(--english-color); color: var(--english-color); }
+
+        /* --- Progress Section (Compact) --- */
+        .progress-card {
+            background: white; 
+            padding: 15px 20px; /* Reduced padding */
+            border-radius: 15px; 
+            border: 2px solid #edf2f7;
+        }
+
+        .progress-bar-container {
+            width: 100%;
+            height: 12px; /* Thinner bar */
+            background: #edf2f7;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 8px;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .progress-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--science-color), var(--english-color));
+            width: 0%;
+            transition: width 1s ease-out;
+        }
+
+        /* --- Subject Grid --- */
+        .subject-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); /* Smaller cards */
+            gap: 15px;
+        }
+
+        .subject-card {
+            background: white;
+            border: 2px solid transparent;
+            border-radius: 15px;
+            padding: 15px;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.03);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            min-height: 130px; /* Shorter cards */
+        }
+        .subject-card:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0,0,0,0.08); }
+        
+        .subject-icon {
+            width: 40px; height: 40px;
+            border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.2rem;
+            color: white;
+            margin-bottom: 10px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+
+        .subject-title { font-size: 1.1rem; font-weight: 700; color: var(--text-main); }
+        .subject-meta { font-size: 0.8rem; color: var(--text-light); font-weight: 700; margin-top: 2px; }
+
+        .complete-badge {
+            position: absolute; top: 10px; right: 10px;
+            background: #f0fff4; color: #00a890;
+            padding: 3px 8px; border-radius: 10px;
+            font-size: 0.7rem; font-weight: 800;
+            border: 1px solid #b9f6ca;
+        }
+
+        /* --- Task List --- */
+        #task-view { display: none; animation: fadeIn 0.3s ease; }
+        .task-list { display: grid; gap: 10px; }
+        
+        .task-item {
+            background: white;
+            border: 2px solid #edf2f7;
+            border-radius: 15px;
+            padding: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+        }
+        .task-item:hover { border-color: var(--english-color); transform: scale(1.005); }
+        .task-item.completed { background: #f0fff4; border-color: #b9f6ca; opacity: 0.8; }
+
+        .task-check {
+            width: 32px; height: 32px;
+            border-radius: 50%;
+            border: 2px solid #edf2f7;
+            margin-right: 12px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.9rem; color: white;
+        }
+        .task-item.completed .task-check { background: var(--science-color); border-color: var(--science-color); }
+
+        .task-info h4 { font-size: 1.1rem; color: var(--text-main); margin: 0; }
+        .task-info p { margin: 2px 0 0 0; font-size: 0.85rem; color: var(--text-light); }
+        
+        .task-points {
+            font-weight: 800; font-size: 0.8rem;
+            background: #edf2f7; padding: 4px 8px; border-radius: 8px;
+            color: var(--text-light);
+        }
+
+        /* --- Focus Modal --- */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.95); z-index: 1000; align-items: center; justify-content: center; backdrop-filter: blur(5px); }
+        .modal.active { display: flex; animation: zoomIn 0.2s ease; }
+        
+        .modal-card {
+            background: white;
+            width: 90%; max-width: 500px;
+            border-radius: 30px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+            border: 4px solid white;
+            text-align: center;
+            position: relative;
+        }
+
+        .modal-icon {
+            width: 70px; height: 70px;
+            border-radius: 20px;
+            margin: 0 auto 15px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 2rem; color: white;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+
+        .btn-large {
+            width: 100%; padding: 15px;
+            border-radius: 15px; border: none;
+            font-size: 1.1rem; font-weight: 800; font-family: 'Fredoka', sans-serif;
+            cursor: pointer; margin-top: 10px;
+            display: flex; align-items: center; justify-content: center; gap: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        .btn-success { background: linear-gradient(135deg, var(--science-color), var(--english-color)); color: white; }
+        .btn-help { background: white; border: 3px solid var(--art-color); color: var(--art-color); }
+        
+        .btn-back { 
+            background: #edf2f7; color: var(--text-light); border: none; 
+            padding: 8px 16px; border-radius: 10px; font-weight: 700; cursor: pointer;
+            margin-bottom: 15px; display: inline-flex; align-items: center; gap: 8px; font-size: 0.9rem;
+        }
+
+        /* --- Parent View --- */
+        #parent-view { display: none; flex-direction: column; gap: 15px; }
+        .parent-header {
+            background: var(--text-main); color: white; padding: 15px;
+            border-radius: 15px; display: flex; justify-content: space-between; align-items: center;
+        }
+        .parent-card { background: white; padding: 20px; border-radius: 20px; border: 2px solid #edf2f7; }
+        
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        input, select, textarea {
+            width: 100%; padding: 12px; border-radius: 10px; border: 2px solid #edf2f7;
+            font-family: 'Nunito', sans-serif; font-size: 0.95rem; background: #fcfcfc;
+            outline: none;
+        }
+        input:focus, select:focus, textarea:focus { border-color: var(--english-color); }
+
+        /* Animations */
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes zoomIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        .confetti { position: fixed; width: 10px; height: 10px; animation: fall linear forwards; z-index: 2000; }
+        @keyframes fall { to { transform: translateY(100vh) rotate(720deg); } }
+        
+        /* Spinner */
+        #loading-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(255,255,255,0.9); z-index: 500; display: flex; justify-content: center; align-items: center; border-radius: var(--radius); }
+        .spinner { border: 4px solid #edf2f7; border-top: 4px solid var(--math-color); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .hidden { display: none !important; }
+
+        .date-control {
+            display: flex; gap: 5px; align-items: center; background: #f7fafc; padding: 5px; border-radius: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<div id="app-container">
+    <div id="loading-overlay"><div class="spinner"></div></div>
+
+    <!-- Header -->
+    <header>
+        <div>
+            <h1 class="title-gradient">Gabe's Get It Done Log</h1>
+            <div class="subtitle"><span id="display-date">Loading...</span></div>
+        </div>
+        <div class="header-actions">
+            <button class="btn-icon" onclick="app.generatePDF()" title="Download Report"><i class="fas fa-file-pdf"></i></button>
+            <button class="btn-icon" onclick="app.showPinEntry()" title="Parent Mode"><i class="fas fa-cog"></i></button>
+        </div>
+    </header>
+
+    <!-- STUDENT VIEW CONTAINER -->
+    <div id="student-view-container">
+        <!-- Progress (Compact) -->
+        <div class="progress-card">
+            <div style="display: flex; justify-content: space-between; align-items: flex-end;">
+                <div style="font-weight: 800; color: var(--text-light); text-transform: uppercase; font-size: 0.8rem;">Daily Progress</div>
+                <div style="font-family: 'Fredoka'; font-size: 1.2rem; color: var(--text-main);"><span id="points-display">0</span> / <span id="goal-display">50</span> pts</div>
+            </div>
+            <div class="progress-bar-container">
+                <div class="progress-bar-fill" id="progress-fill"></div>
+            </div>
+        </div>
+
+        <div style="height: 20px;"></div>
+
+        <!-- Subject Grid -->
+        <div id="subject-view" class="subject-grid">
+            <!-- Injected via JS -->
+        </div>
+
+        <!-- Task List (Hidden initially) -->
+        <div id="task-view">
+            <button class="btn-back" onclick="app.showSubjects()"><i class="fas fa-arrow-left"></i> Back</button>
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
+                <div id="task-view-icon" class="subject-icon" style="margin:0; width: 35px; height: 35px; border-radius: 10px; font-size: 1rem;"></div>
+                <h2 id="task-view-title" style="font-size: 1.5rem; color: var(--text-main);">Subject</h2>
+            </div>
+            <div id="task-list-container" class="task-list">
+                <!-- Injected via JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- PARENT VIEW (Hidden initially) -->
+    <div id="parent-view">
+        <div class="parent-header">
+            <div>
+                <h2 style="font-size: 1.2rem;">Mission Control</h2>
+                <span style="font-size: 0.8rem; opacity: 0.8;">Managing: Gabriel Mendoza</span>
+            </div>
+            <button class="btn-back" style="margin:0; background: rgba(255,255,255,0.2); color: white;" onclick="app.exitParentMode()">Exit</button>
+        </div>
+        
+        <!-- Date & Goal Control -->
+        <div class="parent-card" style="display: flex; gap: 15px; align-items: flex-end;">
+            <div style="flex: 1;">
+                <label style="font-size: 0.8rem; font-weight: bold; color: var(--text-light); display: block; margin-bottom: 5px;">Viewing Date</label>
+                <div class="date-control">
+                    <input type="date" id="parent-date-picker" onchange="app.changeDate(this.value)">
+                    <button onclick="app.planTomorrow()" style="white-space: nowrap; padding: 10px; border: none; background: var(--english-color); color: white; border-radius: 8px; font-weight: bold; font-size: 0.8rem; cursor: pointer;">Plan Tomorrow</button>
+                </div>
+            </div>
+            <div style="width: 100px;">
+                <label style="font-size: 0.8rem; font-weight: bold; color: var(--text-light); display: block; margin-bottom: 5px;">Daily Goal</label>
+                <input type="number" id="daily-goal-input" value="50" onchange="app.updateGoal(this.value)">
+            </div>
+        </div>
+
+        <!-- Add Task -->
+        <div class="parent-card">
+            <h3 style="margin-bottom:15px; color:var(--english-color); font-size: 1.1rem;">Add New Task</h3>
+            <div class="form-row">
+                <select id="new-task-subject">
+                    <!-- Populated -->
+                </select>
+                <select id="new-task-category">
+                    <!-- Populated -->
+                </select>
+            </div>
+            <input type="text" id="new-task-title" placeholder="Title (e.g. Chapter 4 Review)" style="margin-top:10px;">
+            <textarea id="new-task-desc" placeholder="Instructions..." style="margin-top:10px; height:60px; resize:none;"></textarea>
+            <button onclick="app.addTask()" class="btn-large" style="background: var(--english-color); color: white; margin-top:15px; font-size: 1rem; padding: 12px;">
+                <i class="fas fa-plus"></i> Add Task
+            </button>
+        </div>
+
+        <!-- Manage List -->
+        <div class="parent-card">
+            <h3 style="margin-bottom:15px; color:var(--text-main); font-size: 1.1rem;">Current Tasks</h3>
+            <div id="parent-task-list" class="task-list">
+                <!-- Populated -->
+            </div>
+        </div>
+
+        <div style="text-align: center;">
+            <button onclick="app.resetDay()" style="color: var(--red-color); background:none; border:none; font-weight:800; cursor:pointer; font-size: 0.9rem;"><i class="fas fa-trash"></i> Reset Day's Progress</button>
+        </div>
+    </div>
+
+</div>
+
+<!-- PIN MODAL -->
+<div id="pin-modal" class="modal">
+    <div class="modal-card" style="max-width: 350px; padding: 25px;">
+        <i class="fas fa-lock" style="font-size: 2.5rem; color: var(--text-light); margin-bottom: 15px;"></i>
+        <h2 style="margin-bottom: 5px; font-size: 1.5rem;">Parent Access</h2>
+        <input type="password" id="pin-input" maxlength="4" style="text-align: center; font-size: 2rem; letter-spacing: 10px; margin-bottom: 20px; border: none; border-bottom: 3px solid #edf2f7; background: white;">
+        <div style="display: flex; gap: 10px;">
+            <button onclick="app.closeModal('pin-modal')" style="flex:1; padding: 12px; background: #edf2f7; border: none; border-radius: 12px; font-weight: 700; cursor: pointer;">Cancel</button>
+            <button onclick="app.verifyPin()" style="flex:1; padding: 12px; background: var(--text-main); color: white; border: none; border-radius: 12px; font-weight: 700; cursor: pointer;">Unlock</button>
+        </div>
+    </div>
+</div>
+
+<!-- FOCUS TASK MODAL -->
+<div id="focus-modal" class="modal">
+    <div class="modal-card">
+        <div id="focus-icon" class="modal-icon"></div>
+        <div style="text-transform: uppercase; font-weight: 800; color: var(--text-light); font-size: 0.8rem;" id="focus-category">CATEGORY</div>
+        <h2 id="focus-title" style="font-size: 1.8rem; margin: 10px 0;">Task Title</h2>
+        <p id="focus-desc" style="font-size: 1.1rem; color: var(--text-light); margin-bottom: 25px;">Description goes here.</p>
+        
+        <button onclick="app.completeTask()" class="btn-large btn-success">
+            <i class="fas fa-check-circle"></i> I'm Done!
+        </button>
+        <button onclick="app.closeModal('focus-modal')" style="margin-top: 15px; background: none; border: none; color: var(--text-light); font-weight: 700; cursor: pointer;">Close</button>
+    </div>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getFirestore, doc, setDoc, onSnapshot, updateDoc, deleteField } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+    // --- CONFIGURATION ---
+    const firebaseConfig = {
+        apiKey: "AIzaSyAetTXNbMWQtI_RBa8UfQmOsyBe_IRNp_k",
+        authDomain: "point-tracker-b314f.firebaseapp.com",
+        projectId: "point-tracker-b314f",
+        storageBucket: "point-tracker-b314f.firebasestorage.app",
+        messagingSenderId: "169392724174",
+        appId: "1:169392724174:web:3ba4d6fe5292496d9d989f"
+    };
+
+    const firebaseApp = initializeApp(firebaseConfig);
+    const db = getFirestore(firebaseApp);
+    const auth = getAuth(firebaseApp);
+    
+    // Application State
+    const state = {
+        user: null,
+        data: {}, // Firestore Data
+        dateStr: new Date().toLocaleDateString('en-CA'), // YYYY-MM-DD (Local)
+        currentSubject: null,
+        currentTask: null,
+        appId: 'gabriel-space-enhanced'
+    };
+
+    const SUBJECTS = [
+        { id: 'math', label: 'Math', icon: 'fa-calculator', color: 'var(--math-color)' },
+        { id: 'english', label: 'English', icon: 'fa-book-open', color: 'var(--english-color)' },
+        { id: 'science', label: 'Science', icon: 'fa-flask', color: 'var(--science-color)' },
+        { id: 'history', label: 'History', icon: 'fa-globe-americas', color: 'var(--history-color)' },
+        { id: 'art', label: 'Art', icon: 'fa-palette', color: 'var(--art-color)' },
+        { id: 'pe', label: 'PE / Health', icon: 'fa-heart-pulse', color: 'var(--red-color)' },
+        { id: 'music', label: 'Music', icon: 'fa-music', color: 'var(--purple-color)' }
+    ];
+
+    const CATEGORIES = [
+        "Lesson", "Worksheet", "Quiz", "Video", "Reading", 
+        "Project", "Math Problems", "Essay", "Check-In", "Check Out"
+    ];
+
+    const POINTS = {
+        "Lesson": 10, "Worksheet": 10, "Quiz": 20, "Video": 5, "Reading": 10,
+        "Project": 25, "Math Problems": 15, "Essay": 20, "Check-In": 5, "Check Out": 5
+    };
+
+    // --- MAIN LOGIC ---
+    window.app = {
+        init: async () => {
+            // Setup Date Display
+            app.renderDateDisplay();
+
+            // Populate Dropdowns
+            const subSelect = document.getElementById('new-task-subject');
+            SUBJECTS.forEach(s => subSelect.innerHTML += `<option value="${s.id}">${s.label}</option>`);
+            const catSelect = document.getElementById('new-task-category');
+            CATEGORIES.forEach(c => catSelect.innerHTML += `<option value="${c}">${c}</option>`);
+
+            // Auth & Data Listener
+            try { await signInAnonymously(auth); } catch (e) { console.error(e); }
+            
+            onAuthStateChanged(auth, (u) => {
+                state.user = u;
+                if (u) app.subscribeData();
+            });
+        },
+
+        subscribeData: () => {
+            const docRef = doc(db, 'artifacts', state.appId, 'public', 'data', 'daily_logs', state.dateStr);
+            onSnapshot(docRef, (snap) => {
+                document.getElementById('loading-overlay').classList.add('hidden');
+                if (snap.exists()) {
+                    const rawData = snap.data();
+                    
+                    // --- DATA RECOVERY FIX START ---
+                    // This block detects if "tasks" is an Object (old React version) and converts it to Array (this version)
+                    let safeTasks = rawData.tasks || [];
+                    if (!Array.isArray(safeTasks)) {
+                        console.warn("Recovering data format...");
+                        try {
+                            // Convert {math: [t1], sci: [t2]} -> [t1, t2]
+                            safeTasks = Object.values(safeTasks).flat();
+                        } catch (e) {
+                            safeTasks = [];
+                        }
+                    }
+                    // --- DATA RECOVERY FIX END ---
+                    
+                    state.data = { ...rawData, tasks: safeTasks };
+                } else {
+                    // Init Day
+                    const initial = { points: 0, dailyGoal: 50, tasks: [] };
+                    setDoc(docRef, initial);
+                    state.data = initial;
+                }
+                app.render();
+            });
+        },
+
+        render: () => {
+            const data = state.data;
+            const tasks = data.tasks || [];
+            
+            // 1. Progress
+            const points = data.points || 0;
+            const goal = data.dailyGoal || 50;
+            document.getElementById('points-display').innerText = points;
+            document.getElementById('goal-display').innerText = goal;
+            document.getElementById('daily-goal-input').value = goal;
+            document.getElementById('progress-fill').style.width = `${Math.min(100, (points / goal) * 100)}%`;
+
+            // 2. Subject Grid (Student View)
+            const grid = document.getElementById('subject-view');
+            grid.innerHTML = '';
+            
+            // Only show subjects that have tasks or if we are in student view showing empty slots
+            // Actually, showing all subjects is better for consistency
+            SUBJECTS.forEach(sub => {
+                const subTasks = tasks.filter(t => t.subject === sub.id);
+                const completedCount = subTasks.filter(t => t.completed).length;
+                const isDone = subTasks.length > 0 && completedCount === subTasks.length;
+                
+                // Hide subject if no tasks (User preference usually, but let's show to indicate available subjects)
+                // If you want to hide empty subjects, uncomment next line:
+                // if (subTasks.length === 0) return; 
+
+                const card = document.createElement('div');
+                card.className = 'subject-card';
+                if(isDone) card.style.background = '#f0fff4';
+                
+                card.innerHTML = `
+                    ${isDone ? '<div class="complete-badge"><i class="fas fa-check"></i> DONE</div>' : ''}
+                    <div class="subject-icon" style="background: ${sub.color};">
+                        <i class="fas ${sub.icon}"></i>
+                    </div>
+                    <div>
+                        <div class="subject-title">${sub.label}</div>
+                        <div class="subject-meta">${subTasks.length} Activities</div>
+                    </div>
+                `;
+                card.onclick = () => app.openSubject(sub.id);
+                grid.appendChild(card);
+            });
+
+            // 3. Parent Task List
+            const parentList = document.getElementById('parent-task-list');
+            parentList.innerHTML = '';
+            tasks.forEach(task => {
+                const item = document.createElement('div');
+                item.className = 'task-item';
+                item.style.padding = '10px';
+                item.innerHTML = `
+                    <div>
+                        <div style="font-weight:bold; font-size:0.9rem;">${task.title}</div>
+                        <div style="font-size:0.8rem; color:var(--text-light);">${task.category} (${POINTS[task.category] || 10}pts)</div>
+                    </div>
+                    <button onclick="app.deleteTask('${task.id}')" style="color:var(--red-color); background:none; border:none; cursor:pointer;"><i class="fas fa-trash"></i></button>
+                `;
+                parentList.appendChild(item);
+            });
+
+            // 4. Update Task View if open
+            if (state.currentSubject) app.renderTasks(state.currentSubject);
+        },
+
+        renderTasks: (subId) => {
+            const list = document.getElementById('task-list-container');
+            list.innerHTML = '';
+            const tasks = (state.data.tasks || []).filter(t => t.subject === subId);
+            const sub = SUBJECTS.find(s => s.id === subId);
+
+            if (tasks.length === 0) {
+                list.innerHTML = `<div style="text-align:center; padding:30px; color:var(--text-light); font-weight:700;">No tasks yet!</div>`;
+                return;
+            }
+
+            tasks.forEach(task => {
+                const pts = POINTS[task.category] || 10;
+                const item = document.createElement('div');
+                item.className = `task-item ${task.completed ? 'completed' : ''}`;
+                item.innerHTML = `
+                    <div style="display:flex; align-items:center;">
+                        <div class="task-check" style="${task.completed ? '' : 'background:#edf2f7;'}">
+                            ${task.completed ? '<i class="fas fa-check"></i>' : ''}
+                        </div>
+                        <div class="task-info">
+                            <span style="font-size:0.7rem; font-weight:800; color:${sub.color}; text-transform:uppercase;">${task.category}</span>
+                            <h4>${task.title}</h4>
+                            <p>${task.description || ''}</p>
+                        </div>
+                    </div>
+                    <div class="task-points">${pts} PTS</div>
+                `;
+                item.onclick = () => {
+                    if (!task.completed) app.openFocus(task);
+                };
+                list.appendChild(item);
+            });
+        },
+
+        // --- NAVIGATION ---
+        openSubject: (subId) => {
+            state.currentSubject = subId;
+            const sub = SUBJECTS.find(s => s.id === subId);
+            
+            document.getElementById('subject-view').style.display = 'none';
+            document.getElementById('task-view').style.display = 'block';
+            
+            document.getElementById('task-view-title').innerText = sub.label;
+            document.getElementById('task-view-icon').style.backgroundColor = sub.color;
+            document.getElementById('task-view-icon').innerHTML = `<i class="fas ${sub.icon}"></i>`;
+            
+            app.renderTasks(subId);
+        },
+
+        showSubjects: () => {
+            state.currentSubject = null;
+            document.getElementById('task-view').style.display = 'none';
+            document.getElementById('subject-view').style.display = 'grid';
+        },
+
+        showPinEntry: () => {
+            document.getElementById('pin-modal').classList.add('active');
+            document.getElementById('pin-input').value = '';
+            document.getElementById('pin-input').focus();
+        },
+
+        verifyPin: () => {
+            const val = document.getElementById('pin-input').value;
+            if (val === "1234") {
+                app.closeModal('pin-modal');
+                app.enterParentMode();
+            } else {
+                alert("Try again!");
+            }
+        },
+
+        enterParentMode: () => {
+            document.getElementById('student-view-container').style.display = 'none';
+            document.getElementById('parent-view').style.display = 'flex';
+            document.getElementById('parent-date-picker').value = state.dateStr;
+        },
+
+        exitParentMode: () => {
+            document.getElementById('parent-view').style.display = 'none';
+            document.getElementById('student-view-container').style.display = 'block';
+        },
+
+        // --- DATE & PLANNING ---
+        renderDateDisplay: () => {
+            const d = new Date(state.dateStr + 'T00:00:00'); // Force local time interpretation
+            document.getElementById('display-date').innerText = d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+        },
+
+        changeDate: (newDateStr) => {
+            if(!newDateStr) return;
+            state.dateStr = newDateStr;
+            document.getElementById('loading-overlay').classList.remove('hidden');
+            app.renderDateDisplay();
+            app.subscribeData(); // Re-subscribe to new date doc
+        },
+
+        planTomorrow: () => {
+            const today = new Date();
+            const tomorrow = new Date(today);
+            tomorrow.setDate(today.getDate() + 1);
+            // Format YYYY-MM-DD manually to avoid timezone issues
+            const yyyy = tomorrow.getFullYear();
+            const mm = String(tomorrow.getMonth() + 1).padStart(2, '0');
+            const dd = String(tomorrow.getDate()).padStart(2, '0');
+            const str = `${yyyy}-${mm}-${dd}`;
+            
+            app.changeDate(str);
+            document.getElementById('parent-date-picker').value = str;
+        },
+
+        // --- TASK LOGIC ---
+        addTask: async () => {
+            const sub = document.getElementById('new-task-subject').value;
+            const cat = document.getElementById('new-task-category').value;
+            const title = document.getElementById('new-task-title').value;
+            const desc = document.getElementById('new-task-desc').value;
+
+            if (!title) return alert("Title required");
+
+            const newTask = {
+                id: Date.now().toString(),
+                subject: sub,
+                category: cat,
+                title: title,
+                description: desc,
+                completed: false
+            };
+            
+            // Ensure array
+            let currentTasks = state.data.tasks || [];
+            if (!Array.isArray(currentTasks)) currentTasks = [];
+
+            await updateDoc(doc(db, 'artifacts', state.appId, 'public', 'data', 'daily_logs', state.dateStr), {
+                tasks: [...currentTasks, newTask]
+            });
+
+            document.getElementById('new-task-title').value = '';
+            document.getElementById('new-task-desc').value = '';
+        },
+
+        deleteTask: async (id) => {
+            if(!confirm("Remove task?")) return;
+            // Ensure array
+            let currentTasks = state.data.tasks || [];
+            if (!Array.isArray(currentTasks)) {
+                 if (typeof currentTasks === 'object') currentTasks = Object.values(currentTasks).flat();
+                 else currentTasks = [];
+            }
+            
+            const newTasks = currentTasks.filter(t => t.id !== id);
+            await updateDoc(doc(db, 'artifacts', state.appId, 'public', 'data', 'daily_logs', state.dateStr), {
+                tasks: newTasks
+            });
+        },
+
+        updateGoal: async (val) => {
+            await updateDoc(doc(db, 'artifacts', state.appId, 'public', 'data', 'daily_logs', state.dateStr), {
+                dailyGoal: parseInt(val)
+            });
+        },
+
+        openFocus: (task) => {
+            state.currentTask = task;
+            const sub = SUBJECTS.find(s => s.id === task.subject);
+            
+            document.getElementById('focus-icon').style.backgroundColor = sub.color;
+            document.getElementById('focus-icon').innerHTML = `<i class="fas ${sub.icon}"></i>`;
+            document.getElementById('focus-category').innerText = task.category;
+            document.getElementById('focus-title').innerText = task.title;
+            document.getElementById('focus-desc').innerText = task.description || "You can do this!";
+            
+            document.getElementById('focus-modal').classList.add('active');
+        },
+
+        completeTask: async () => {
+            if (!state.currentTask) return;
+            const task = state.currentTask;
+            const pts = POINTS[task.category] || 10;
+            
+            const newPoints = (state.data.points || 0) + pts;
+            const newTasks = state.data.tasks.map(t => {
+                if (t.id === task.id) return { ...t, completed: true };
+                return t;
+            });
+
+            await updateDoc(doc(db, 'artifacts', state.appId, 'public', 'data', 'daily_logs', state.dateStr), {
+                points: newPoints,
+                tasks: newTasks
+            });
+
+            app.closeModal('focus-modal');
+            app.triggerConfetti();
+        },
+
+        resetDay: async () => {
+            if(confirm("Reset points and task status?")) {
+                let currentTasks = state.data.tasks || [];
+                if (!Array.isArray(currentTasks)) {
+                     if (typeof currentTasks === 'object') currentTasks = Object.values(currentTasks).flat();
+                     else currentTasks = [];
+                }
+
+                await updateDoc(doc(db, 'artifacts', state.appId, 'public', 'data', 'daily_logs', state.dateStr), {
+                    points: 0,
+                    tasks: currentTasks.map(t => ({...t, completed: false}))
+                });
+            }
+        },
+
+        closeModal: (id) => {
+            document.getElementById(id).classList.remove('active');
+        },
+
+        // --- EXTRAS ---
+        triggerConfetti: () => {
+            const colors = ['#FF2E63', '#00F5D4', '#FF9F1C', '#00C2FF'];
+            for (let i = 0; i < 50; i++) {
+                const conf = document.createElement('div');
+                conf.className = 'confetti';
+                conf.style.left = Math.random() * 100 + '%';
+                conf.style.top = -10 + '%';
+                conf.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                conf.style.animationDuration = (Math.random() * 2 + 2) + 's';
+                document.body.appendChild(conf);
+                setTimeout(() => conf.remove(), 4000);
+            }
+        },
+
+        generatePDF: () => {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(22);
+            doc.text("Gabe's Get It Done Log", 20, 20);
+            
+            doc.setFontSize(12);
+            doc.setFont("helvetica", "normal");
+            doc.text(`Date: ${state.dateStr}`, 20, 30);
+            doc.text(`Score: ${state.data.points || 0} / ${state.data.dailyGoal || 50}`, 20, 36);
+            
+            const rows = (state.data.tasks || []).map(t => [
+                SUBJECTS.find(s=>s.id===t.subject)?.label,
+                t.category,
+                t.title, 
+                t.completed ? "DONE" : "Pending"
+            ]);
+            
+            doc.autoTable({
+                startY: 45,
+                head: [['Subject', 'Type', 'Task', 'Status']],
+                body: rows,
+                theme: 'grid',
+                headStyles: { fillColor: [45, 55, 72] }
+            });
+            doc.save(`Gabriel_Log_${state.dateStr}.pdf`);
+        }
+    };
+
+    // Start
+    window.app.init();
+</script>
+
+</body>
+</html>
